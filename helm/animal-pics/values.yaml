@@ -1,3 +1,4 @@
+# Application configuration
 image:
   repository: sanket4373/animal-pics
   tag: latest
@@ -9,19 +10,6 @@ service:
   type: ClusterIP
   port: 8000
 
-env:
-  ENV: production
-  MINIO_BUCKET: animal-pictures
-  MINIO_SECURE: "false"
-  MINIO_ENDPOINT: minio:9000
-
-database:
-  url: "postgresql://postgres:postgres@postgresql:5432/animals"
-
-minio:
-  accessKey: "minioadmin"
-  secretKey: "minioadmin"
-
 resources:
   limits:
     cpu: 500m
@@ -29,3 +17,44 @@ resources:
   requests:
     cpu: 250m
     memory: 256Mi
+
+# PostgreSQL subchart configuration
+postgresql:
+  enabled: true
+  auth:
+    username: postgres
+    password: postgres
+    database: animals
+  primary:
+    persistence:
+      enabled: true
+      size: 1Gi
+
+# MinIO subchart configuration
+minio:
+  enabled: true
+  auth:
+    rootUser: minioadmin
+    rootPassword: minioadmin
+  defaultBuckets: "animal-pictures"
+  persistence:
+    enabled: true
+    size: 5Gi
+  service:
+    type: ClusterIP
+    port: 9000
+
+# Application environment variables
+# These will be injected into the app deployment
+env:
+  ENV: production
+  MINIO_BUCKET: animal-pictures
+  MINIO_SECURE: "false"
+  # Service names are auto-generated: <release-name>-<subchart-name>
+  # For example: animal-pics-minio:9000
+  MINIO_ENDPOINT: "{{ .Release.Name }}-minio:9000"
+
+database:
+  # Service name is auto-generated: <release-name>-postgresql
+  # For example: animal-pics-postgresql:5432
+  url: "postgresql://postgres:postgres@{{ .Release.Name }}-postgresql:5432/animals"

@@ -207,49 +207,62 @@ docker pull sanket4373/animal-pics:v1.0.0
 - `kubectl` installed and configured to access your cluster
 - `helm` 3.x installed ([installation guide](https://helm.sh/docs/intro/install/))
 
-### Step 1: Clone the Repository
+### One-Command Deployment
+
+Deploy the complete application stack (PostgreSQL + MinIO + FastAPI) with a single command:
 
 ```bash
-# Clone the repository
+# Step 1: Add Helm repositories (one-time setup)
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo add minio https://charts.min.io/
+helm repo update
+
+# Step 2: Clone the repository
 git clone https://github.com/YOUR_USERNAME/animal-pics.git
-cd animal-pics
+cd animal-pics/helm/animal-pics
+
+# Step 3: Update Helm dependencies
+helm dependency update
+
+# Step 4: Deploy everything with ONE command
+helm install animal-pics . --namespace animal-pics --create-namespace
+
+# This automatically deploys:
+#  PostgreSQL database (with 1Gi persistent storage)
+#  MinIO object storage (with 5Gi persistent storage)
+#  FastAPI application (pulls from Docker Hub)
+#  All required services, configmaps, and secrets
 ```
 
-### Step 2: Deploy Everything with Helm
+### Verify Deployment
 
 ```bash
-# Install the application with one command
-helm install animal-pics ./helm/animal-pics
+# Check all pods are running
+kubectl get pods -n animal-pics
 
-# This automatically creates:
-# - PostgreSQL database with persistent storage
-# - MinIO object storage with persistent storage
-# - FastAPI application (3 replicas)
-# - Services for all components
-# - ConfigMaps and Secrets
+# Expected output (wait 1-2 minutes for all to be Ready):
+# NAME                                    READY   STATUS    RESTARTS   AGE
+# animal-pics-postgresql-0                1/1     Running   0          2m
+# animal-pics-minio-xxx                   1/1     Running   0          2m
+# animal-pics-xxx                         1/1     Running   0          2m
+
+# Check services
+kubectl get svc -n animal-pics
 ```
 
-### Step 3: Wait for Pods to be Ready
-
-```bash
-# Watch deployment progress
-kubectl get pods -w
-
-# All pods should reach "Running" status in 1-2 minutes
-```
-
-### Step 4: Access the Application
+### Access the Application
 
 ```bash
 # Port forward to access locally
-kubectl port-forward svc/animal-pics 8000:8000
+kubectl port-forward svc/animal-pics 8000:8000 -n animal-pics
 
-# Now open in browser:
+# Open in browser:
 # - Web UI: http://localhost:8000
 # - API Docs: http://localhost:8000/docs
+# - Health Check: http://localhost:8000/health
 ```
 
-### Step 5: Test the Application
+### Test the Application
 
 ```bash
 # Fetch some dog pictures
@@ -261,27 +274,55 @@ curl -X POST http://localhost:8000/animals/fetch \
 curl http://localhost:8000/animals/last/dog --output dog.jpg
 ```
 
-### Customization (Optional)
+### Customization Options
 
-To customize the deployment, edit `helm/animal-pics/values.yaml`:
-
-```yaml
-replicaCount: 5  # Scale up replicas
-
-image:
-  repository: sanket4373/animal-pics  # Public Docker Hub image
-  tag: latest  # Or use v1.0.0 for specific version
-
-resources:
-  limits:
-    memory: "512Mi"
-    cpu: "500m"
-```
-
-Then upgrade the deployment:
+You can customize the deployment using `--set` flags:
 
 ```bash
-helm upgrade animal-pics ./helm/animal-pics
+# Custom database password
+helm install animal-pics . \
+  --set postgresql.auth.password=mysecurepassword \
+  --namespace animal-pics --create-namespace
+
+# Scale up replicas
+helm install animal-pics . \
+  --set replicaCount=3 \
+  --namespace animal-pics --create-namespace
+
+# Use specific image version
+helm install animal-pics . \
+  --set image.tag=v1.0.0 \
+  --namespace animal-pics --create-namespace
+
+# Disable persistence (for testing)
+helm install animal-pics . \
+  --set postgresql.primary.persistence.enabled=false \
+  --set minio.persistence.enabled=false \
+  --namespace animal-pics --create-namespace
+
+# Increase storage sizes
+helm install animal-pics . \
+  --set postgresql.primary.persistence.size=5Gi \
+  --set minio.persistence.size=10Gi \
+  --namespace animal-pics --create-namespace
+```
+
+Or edit `helm/animal-pics/values.yaml` and upgrade:
+
+```bash
+helm upgrade animal-pics . -n animal-pics
+```
+
+### Cleanup
+
+Remove everything with one command:
+
+```bash
+# Uninstall the application and all components
+helm uninstall animal-pics -n animal-pics
+
+# Delete the namespace (optional)
+kubectl delete namespace animal-pics
 ```
 
 ### Production Access (Optional)
