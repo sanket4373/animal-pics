@@ -62,9 +62,11 @@ Thumbs.db
 # MinIO data (if running locally)
 minio-data/
 
-# Kubernetes secrets (never commit!)
+# Kubernetes secrets (never commit actual secrets!)
+# But allow Helm template files
 *secret*.yaml
 *-secret.yaml
+!helm/**/templates/secret.yaml
 
 # Documentation (internal)
 docs/
