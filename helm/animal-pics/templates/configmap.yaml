@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+data:
+  ENV: {{ .Values.env.ENV }}
+  MINIO_BUCKET: {{ .Values.env.MINIO_BUCKET }}
+  MINIO_SECURE: {{ .Values.env.MINIO_SECURE | quote }}
+  MINIO_ENDPOINT: {{ .Values.env.MINIO_ENDPOINT }}

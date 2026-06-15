@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animal Picture Viewer</title>
+    <style>
+        body {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        
+        #fetch-btn {
+            background-color: #007bff;
+        }
+        
+        #fetch-btn:hover {
+            background-color: #0056b3;
+        }
+        
+        #show-last-btn {
+            background-color: #007bff;
+        }
+        
+        #show-last-btn:hover {
+            background-color: #218838;
+        }
+        
+        img {
+            max-width: 100%;
+            display: block;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+        
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        select, input {
+            width: 100%;
+            padding: 8px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        
+        #status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        #status.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        #status.loading {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .button-group {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Animal Picture Fetcher</h1>
+    
+    <div id="form-section">
+        <label for="animal-type">Select Animal Type:</label>
+        <select id="animal-type">
+            <option value="dog">Dog</option>
+            <option value="bear">Bear</option>
+        </select>
+        
+        <label for="count">Number of Pictures to Fetch (1-20):</label>
+        <input type="number" id="count" min="1" max="20" value="5">
+        
+        <div class="button-group">
+            <button id="fetch-btn">Fetch New Pictures</button>
+            <button id="show-last-btn">Show Last Picture</button>
+        </div>
+    </div>
+    
+    <div id="status"></div>
+    <div id="result"></div>
+    
+    <script>
+        // Fetch New Pictures Button
+        document.getElementById('fetch-btn').addEventListener('click', async function() {
+            const animalType = document.getElementById('animal-type').value;
+            const count = parseInt(document.getElementById('count').value);
+            
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = 'Fetching new pictures from the internet...';
+            statusDiv.className = 'loading';
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+            
+            try {
+                const response = await fetch('/animals/fetch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        animal_type: animalType,
+                        count: count
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                statusDiv.textContent = `Successfully fetched and stored ${data.count} ${animalType} picture(s)! Click "Show Last Picture" to view.`;
+                statusDiv.className = 'success';
+                
+            } catch (error) {
+                statusDiv.textContent = `Error: ${error.message}`;
+                statusDiv.className = 'error';
+                console.error('Fetch error:', error);
+            }
+        });
+        
+        // Show Last Picture Button
+        document.getElementById('show-last-btn').addEventListener('click', async function() {
+            const animalType = document.getElementById('animal-type').value;
+            
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = 'Loading last picture...';
+            statusDiv.className = 'loading';
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+            
+            try {
+                const imageResponse = await fetch(`/animals/last/${animalType}`);
+                
+                if (imageResponse.status === 404) {
+                    statusDiv.textContent = `No ${animalType} pictures found. Fetch some first!`;
+                    statusDiv.className = 'error';
+                    return;
+                }
+                
+                if (!imageResponse.ok) {
+                    throw new Error(`Failed to retrieve image! status: ${imageResponse.status}`);
+                }
+                
+                const blob = await imageResponse.blob();
+                const imageUrl = URL.createObjectURL(blob);
+                
+                const img = document.createElement('img');
+                img.src = imageUrl;
+                img.alt = `${animalType} picture`;
+                resultDiv.appendChild(img);
+                
+                statusDiv.textContent = `Displaying last ${animalType} picture from storage.`;
+                statusDiv.className = 'success';
+                
+            } catch (error) {
+                statusDiv.textContent = `Error: ${error.message}`;
+                statusDiv.className = 'error';
+                console.error('Display error:', error);
+            }
+        });
+    </script>
+</body>
+</html>
