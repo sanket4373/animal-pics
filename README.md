@@ -6,6 +6,7 @@ A production-ready FastAPI microservice that fetches, stores, and serves animal 
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 [![Kubernetes](https://img.shields.io/badge/kubernetes-helm-326CE5.svg)](https://helm.sh/)
+[![Docker Hub](https://img.shields.io/badge/docker%20hub-sanket4373%2Fanimal--pics-blue.svg)](https://hub.docker.com/r/sanket4373/animal-pics)
 
 ---
 
@@ -182,7 +183,23 @@ Docker Compose starts three services automatically:
 
 ## Running Application in Production Deployment (Kubernetes)
 
-Deploy to Kubernetes in minutes - no Docker builds, no registry pushes, no manual configuration. Just clone and deploy with Helm.
+Deploy to Kubernetes in minutes using the pre-built Docker image from Docker Hub. No need to build the image yourself!
+
+### Pre-built Docker Image
+
+The application is available as a public Docker image on Docker Hub:
+
+**Docker Hub Repository:** https://hub.docker.com/r/sanket4373/animal-pics
+
+The Helm chart is configured to automatically pull the image from Docker Hub during deployment. You can also manually pull it if needed:
+
+```bash
+# Pull the latest image (optional - Helm does this automatically)
+docker pull sanket4373/animal-pics:latest
+
+# Or use a specific version
+docker pull sanket4373/animal-pics:v1.0.0
+```
 
 ### Prerequisites
 
@@ -252,8 +269,8 @@ To customize the deployment, edit `helm/animal-pics/values.yaml`:
 replicaCount: 5  # Scale up replicas
 
 image:
-  repository: your-registry/animal-pics  # Use custom image
-  tag: v2.0.0
+  repository: sanket4373/animal-pics  # Public Docker Hub image
+  tag: latest  # Or use v1.0.0 for specific version
 
 resources:
   limits:
@@ -605,20 +622,7 @@ animal-pics/
 
 ## Design Decisions
 
-### 1. Async/Await Throughout
-
-**Why:** External API calls are I/O-bound. Using `asyncio.gather()` allows fetching multiple images concurrently, reducing total latency from `N × latency` to `max(latency)`.
-
-```python
-# Sequential: 3 seconds total for 3 images
-for i in range(3):
-    await fetch_image()  # 1 second each
-
-# Concurrent: 1 second total for 3 images
-await asyncio.gather(*[fetch_image() for _ in range(3)])
-```
-
-### 2. Service Layer Separation
+### 1. Service Layer Separation
 
 **Why:** Keeps business logic separate from HTTP concerns. Makes testing easier and allows reusing logic across different interfaces (REST, GraphQL, CLI).
 
@@ -626,7 +630,7 @@ await asyncio.gather(*[fetch_image() for _ in range(3)])
 Router (HTTP) → Service (Logic) → Storage/Database (Persistence)
 ```
 
-### 3. Multi-Stage Dockerfile
+### 2. Multi-Stage Dockerfile
 
 **Why:** Keeps production image small (~150MB vs ~800MB). Builder stage has Poetry and build tools; runtime stage only has the application.
 
@@ -635,7 +639,7 @@ FROM python:3.11-slim AS builder  # Install dependencies
 FROM python:3.11-slim AS runtime  # Copy only what's needed
 ```
 
-### 4. Pydantic for Configuration
+### 3. Pydantic for Configuration
 
 **Why:** Type-safe settings with validation. Reads from environment variables or `.env` file. Fails fast on misconfiguration.
 
@@ -646,15 +650,15 @@ class Settings(BaseSettings):
     # Automatically reads from DATABASE_URL, MINIO_ENDPOINT env vars
 ```
 
-### 5. Health Check Endpoint
+### 4. Health Check Endpoint
 
 **Why:** Essential for production. Used by Docker Compose, Kubernetes liveness probes, and load balancers to determine service health.
 
-### 6. Helm Chart Included
+### 5. Helm Chart Included
 
 **Why:** Demonstrates production-readiness. Helm is the standard for Kubernetes deployments. Shows understanding of cloud-native patterns.
 
-### 7. OpenAPI Documentation
+### 6. OpenAPI Documentation
 
 **Why:** FastAPI generates interactive docs automatically. Improves discoverability and reduces documentation burden.
 
@@ -663,16 +667,5 @@ class Settings(BaseSettings):
 ## Acknowledgments
 
 - [Dog CEO API](https://dog.ceo/dog-api/) - Free dog pictures
-- [Bear API](https://github.com/public-apis/public-apis) - Bear pictures
-- [FastAPI](https://fastapi.tiangolo.com/) - Modern Python web framework
-- [MinIO](https://min.io/) - High-performance object storage
-- [Poetry](https://python-poetry.org/) - Python dependency management
-
----
-
-## Support
-
-- **Issues**: [GitHub Issues](https://github.com/YOUR_USERNAME/animal-pics/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/YOUR_USERNAME/animal-pics/discussions)
-
+- [Bear API](https://placebear.com/) - Bear pictures
 ---

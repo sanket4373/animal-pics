@@ -1,6 +1,6 @@
 image:
-  repository: animal-pics-app
-  tag: local
+  repository: sanket4373/animal-pics
+  tag: latest
   pullPolicy: IfNotPresent
 
 replicaCount: 1
