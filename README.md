@@ -13,8 +13,8 @@ A production-ready FastAPI microservice that fetches, stores, and serves animal 
 
 - [Background](#background)
 - [Architecture](#architecture)
-- [Running Application locally (Docker Compose)](#quick-start-docker-compose)
-- [Running Application in Production Deployment (Kubernetes)](#production-deployment-kubernetes)
+- [Running Application locally (Docker Compose)](#running-application-locally-docker-compose)
+- [Running Application in Production Deployment (Kubernetes)](#running-application-in-production-deployment-kubernetes)
 - [Technology Stack](#technology-stack)
 - [Features](#features)
 - [Prerequisites](#prerequisites)
@@ -22,20 +22,17 @@ A production-ready FastAPI microservice that fetches, stores, and serves animal 
 - [Testing](#testing)
 - [Project Structure](#project-structure)
 - [Design Decisions](#design-decisions)
-- [Contributing](#contributing)
-
 ---
 
 ## Background
 
 This microservice was built to demonstrate modern Python web development practices, cloud-native architecture patterns, and production deployment strategies. It showcases:
 
-- **RESTful API design** with automatic OpenAPI documentation
-- **Asynchronous programming** for concurrent external API calls
-- **Separation of concerns** with proper layering (router → service → storage)
 - **Cloud-native storage patterns** (object storage + relational database)
 - **Container orchestration** with Docker Compose and Kubernetes
 - **Infrastructure as Code** using Helm charts
+- **Automated Testing** with pytest
+- **RESTful API design** with automatic OpenAPI documentation
 
 ### Problem Statement
 
@@ -48,62 +45,51 @@ Fetch animal pictures from external APIs (Dog CEO API, Bear API), store them eff
 ### High-Level Architecture Diagram
 
 ```mermaid
-flowchart TB
-    subgraph CLIENT["CLIENT LAYER"]
+graph LR
+    subgraph Client
         UI[Web UI<br/>Browser]
-        API[API Clients<br/>curl, Postman]
+        REST[REST API<br/>curl/Postman]
     end
-
-    subgraph APP["APPLICATION LAYER"]
-        subgraph FASTAPI["FastAPI Application"]
-            ROUTER[Router<br/>Endpoints]
-            SERVICE[Service Layer<br/>Business Logic]
-            CLIENTS[Animal Clients<br/>httpx async]
-        end
-    end
-
-    subgraph EXTERNAL["EXTERNAL APIS"]
-        DOG[Dog CEO API]
-        BEAR[Bear API]
-    end
-
-    subgraph PERSIST["PERSISTENCE LAYER"]
-        POSTGRES[(PostgreSQL<br/>Metadata Storage)]
-        MINIO[(MinIO<br/>Object Storage)]
-    end
-
-    subgraph DEPLOY["DEPLOYMENT LAYER"]
-        COMPOSE[Docker Compose<br/>Development]
-        K8S[Kubernetes + Helm<br/>Production]
-    end
-
-    UI --> ROUTER
-    API --> ROUTER
-    ROUTER --> SERVICE
-    SERVICE --> CLIENTS
-    SERVICE --> POSTGRES
-    SERVICE --> MINIO
-    CLIENTS --> DOG
-    CLIENTS --> BEAR
-
-    style CLIENT fill:#e1f5ff,stroke:#01579b,stroke-width:2px
-    style APP fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    style FASTAPI fill:#ede7f6,stroke:#311b92,stroke-width:2px
-    style EXTERNAL fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    style PERSIST fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
-    style DEPLOY fill:#fce4ec,stroke:#880e4f,stroke-width:2px
     
-    style UI fill:#bbdefb,stroke:#0277bd
-    style API fill:#bbdefb,stroke:#0277bd
-    style ROUTER fill:#ce93d8,stroke:#6a1b9a
-    style SERVICE fill:#ce93d8,stroke:#6a1b9a
-    style CLIENTS fill:#ce93d8,stroke:#6a1b9a
-    style DOG fill:#ffcc80,stroke:#e65100
-    style BEAR fill:#ffcc80,stroke:#e65100
-    style POSTGRES fill:#a5d6a7,stroke:#2e7d32
-    style MINIO fill:#a5d6a7,stroke:#2e7d32
-    style COMPOSE fill:#f48fb1,stroke:#c2185b
-    style K8S fill:#f48fb1,stroke:#c2185b
+    subgraph App
+        Router[Router<br/>FastAPI]
+        Service[Service<br/>Logic]
+        Clients[Animal Clients<br/>httpx]
+    end
+    
+    subgraph External
+        Dogs[Dogs 🐶]
+        Bears[Bears 🐻]
+    end
+    
+    subgraph Storage
+        DB[(PostgreSQL<br/>Metadata)]
+        S3[(MinIO<br/>Images)]
+    end
+    
+    subgraph Deploy
+        Compose[Docker<br/>Compose]
+        K8S[Kubernetes<br/>Helm]
+    end
+    
+    UI --> Router
+    REST --> Router
+    Router --> Service
+    Service --> Clients
+    Service --> DB
+    Service --> S3
+    Clients --> Dogs
+    Clients --> Bears
+    DB --> Compose
+    DB --> K8S
+    S3 --> Compose
+    S3 --> K8S
+    
+    style Client fill:#e8e8e8,stroke:#666
+    style App fill:#d4c5f9,stroke:#8b7ac7
+    style External fill:#ffd699,stroke:#cc8800
+    style Storage fill:#b3d9b3,stroke:#4d994d
+    style Deploy fill:#e8e8e8,stroke:#666
 ```
 
 ### Data Flow
@@ -131,7 +117,7 @@ flowchart TB
 
 ---
 
-## Quick Start (Docker Compose)
+## Running Application locally (Docker Compose)
 
 Get the application running locally in minutes with Docker Compose. No need to install Python, Poetry, or any dependencies on your machine.
 
@@ -194,57 +180,45 @@ Docker Compose starts three services automatically:
 
 ---
 
-## Production Deployment (Kubernetes)
+## Running Application in Production Deployment (Kubernetes)
+
+Deploy to Kubernetes in minutes - no Docker builds, no registry pushes, no manual configuration. Just clone and deploy with Helm.
 
 ### Prerequisites
 
-- Kubernetes cluster (minikube, kind, GKE, EKS, AKS)
-- kubectl configured
-- Helm 3 installed
+- Access to a Kubernetes cluster (minikube, kind, GKE, EKS, AKS, or any K8s cluster)
+- `kubectl` installed and configured to access your cluster
+- `helm` 3.x installed ([installation guide](https://helm.sh/docs/intro/install/))
 
-### Step 1: Build and Push Docker Image
-
-```bash
-# Build the image
-docker build -t your-registry/animal-pics:v1.0.0 .
-
-# Push to container registry
-docker push your-registry/animal-pics:v1.0.0
-```
-
-### Step 2: Update Helm Values
-
-Edit `helm/animal-pics/values.yaml`:
-
-```yaml
-image:
-  repository: your-registry/animal-pics
-  tag: v1.0.0
-  pullPolicy: IfNotPresent
-
-replicaCount: 3  # Scale as needed
-
-database:
-  url: "postgresql://user:password@postgres-service:5432/animals"
-
-minio:
-  endpoint: "minio-service:9000"
-  accessKey: "your-access-key"
-  secretKey: "your-secret-key"
-```
-
-### Step 3: Install with Helm
+### Step 1: Clone the Repository
 
 ```bash
-# Install the chart
+# Clone the repository
+git clone https://github.com/YOUR_USERNAME/animal-pics.git
+cd animal-pics
+```
+
+### Step 2: Deploy Everything with Helm
+
+```bash
+# Install the application with one command
 helm install animal-pics ./helm/animal-pics
 
-# Or upgrade if already installed
-helm upgrade animal-pics ./helm/animal-pics
+# This automatically creates:
+# - PostgreSQL database with persistent storage
+# - MinIO object storage with persistent storage
+# - FastAPI application (3 replicas)
+# - Services for all components
+# - ConfigMaps and Secrets
+```
 
-# Check deployment status
-kubectl get pods -l app=animal-pics
-kubectl get svc animal-pics
+### Step 3: Wait for Pods to be Ready
+
+```bash
+# Watch deployment progress
+kubectl get pods -w
+
+# All pods should reach "Running" status in 1-2 minutes
 ```
 
 ### Step 4: Access the Application
@@ -253,21 +227,85 @@ kubectl get svc animal-pics
 # Port forward to access locally
 kubectl port-forward svc/animal-pics 8000:8000
 
-# Or expose via LoadBalancer/Ingress (production)
-kubectl expose deployment animal-pics --type=LoadBalancer --port=80 --target-port=8000
+# Now open in browser:
+# - Web UI: http://localhost:8000
+# - API Docs: http://localhost:8000/docs
 ```
 
-### Step 5: Monitor and Debug
+### Step 5: Test the Application
 
 ```bash
-# View logs
+# Fetch some dog pictures
+curl -X POST http://localhost:8000/animals/fetch \
+  -H "Content-Type: application/json" \
+  -d '{"animal_type": "dog", "count": 3}'
+
+# Get the last dog picture
+curl http://localhost:8000/animals/last/dog --output dog.jpg
+```
+
+### Customization (Optional)
+
+To customize the deployment, edit `helm/animal-pics/values.yaml`:
+
+```yaml
+replicaCount: 5  # Scale up replicas
+
+image:
+  repository: your-registry/animal-pics  # Use custom image
+  tag: v2.0.0
+
+resources:
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+```
+
+Then upgrade the deployment:
+
+```bash
+helm upgrade animal-pics ./helm/animal-pics
+```
+
+### Production Access (Optional)
+
+For production environments, expose via LoadBalancer or Ingress:
+
+```bash
+# Option 1: LoadBalancer (cloud providers)
+kubectl expose deployment animal-pics --type=LoadBalancer --port=80 --target-port=8000
+
+# Option 2: Configure Ingress in values.yaml
+# Then: helm upgrade animal-pics ./helm/animal-pics
+```
+
+### Monitoring and Debugging
+
+```bash
+# View application logs
 kubectl logs -f deployment/animal-pics
 
-# Check health
+# Check all resources
+kubectl get all
+
+# Check Helm release status
+helm status animal-pics
+
+# Check health endpoint
 kubectl exec -it deployment/animal-pics -- curl localhost:8000/health
 
 # Describe pod for troubleshooting
-kubectl describe pod <pod-name>
+kubectl describe pod -l app=animal-pics
+```
+
+### Cleanup
+
+```bash
+# Remove all resources
+helm uninstall animal-pics
+
+# Verify cleanup
+kubectl get all
 ```
 
 ### Helm Chart Structure
