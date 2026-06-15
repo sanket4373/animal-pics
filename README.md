@@ -46,7 +46,7 @@ Fetch animal pictures from external APIs (Dog CEO API, Bear API), store them eff
 ### High-Level Architecture Diagram
 
 ```mermaid
-graph LR
+graph TB
     subgraph Client
         UI[Web UI<br/>Browser]
         REST[REST API<br/>curl/Postman]
@@ -58,9 +58,9 @@ graph LR
         Clients[Animal Clients<br/>httpx]
     end
     
-    subgraph External
-        Dogs[Dogs 🐶]
-        Bears[Bears 🐻]
+    subgraph External["External APIs"]
+        Dogs["Place Dog API<br/>🐶 place.dog<br/>(Random dog images)"]
+        Bears["Place Bear API<br/>🐻 placebear.com<br/>(Random bear images)"]
     end
     
     subgraph Storage
@@ -68,29 +68,21 @@ graph LR
         S3[(MinIO<br/>Images)]
     end
     
-    subgraph Deploy
-        Compose[Docker<br/>Compose]
-        K8S[Kubernetes<br/>Helm]
-    end
-    
     UI --> Router
     REST --> Router
     Router --> Service
     Service --> Clients
-    Service --> DB
-    Service --> S3
-    Clients --> Dogs
-    Clients --> Bears
-    DB --> Compose
-    DB --> K8S
-    S3 --> Compose
-    S3 --> K8S
+    Service -->|Store metadata| DB
+    Service -->|Store images| S3
+    DB -->|Retrieve metadata| Service
+    S3 -->|Retrieve images| Service
+    Clients -->|Fetch images| Dogs
+    Clients -->|Fetch images| Bears
     
     style Client fill:#e8e8e8,stroke:#666
     style App fill:#d4c5f9,stroke:#8b7ac7
     style External fill:#ffd699,stroke:#cc8800
     style Storage fill:#b3d9b3,stroke:#4d994d
-    style Deploy fill:#e8e8e8,stroke:#666
 ```
 
 ### Data Flow
@@ -707,6 +699,6 @@ class Settings(BaseSettings):
 
 ## Acknowledgments
 
-- [Dog CEO API](https://dog.ceo/dog-api/) - Free dog pictures
+- [Dog CEO API](https://place.dog/) - Free dog pictures
 - [Bear API](https://placebear.com/) - Bear pictures
 ---

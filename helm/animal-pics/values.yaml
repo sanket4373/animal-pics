@@ -21,6 +21,10 @@ resources:
 # PostgreSQL subchart configuration
 postgresql:
   enabled: true
+  image:
+    registry: docker.io
+    repository: postgres
+    tag: "15-alpine"
   auth:
     username: postgres
     password: postgres
@@ -33,6 +37,10 @@ postgresql:
 # MinIO subchart configuration
 minio:
   enabled: true
+  image:
+    registry: docker.io
+    repository: minio/minio
+    tag: latest
   auth:
     rootUser: minioadmin
     rootPassword: minioadmin
