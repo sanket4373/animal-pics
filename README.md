@@ -15,12 +15,13 @@ A production-ready FastAPI microservice that fetches, stores, and serves animal 
 - [Background](#background)
 - [Architecture](#architecture)
 - [Running Application locally (Docker Compose)](#running-application-locally-docker-compose)
+- [Testing](#testing)
 - [Running Application in Production Deployment (Kubernetes)](#running-application-in-production-deployment-kubernetes)
 - [Technology Stack](#technology-stack)
 - [Features](#features)
 - [Prerequisites](#prerequisites)
 - [API Reference](#api-reference)
-- [Testing](#testing)
+
 - [Project Structure](#project-structure)
 - [Design Decisions](#design-decisions)
 ---
@@ -118,7 +119,7 @@ Get the application running locally in minutes with Docker Compose. No need to i
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/animal-pics.git
+git clone https://github.com/sanket4373/animal-pics.git
 
 # Navigate to the project directory
 cd animal-pics
@@ -163,7 +164,25 @@ docker-compose down
 docker-compose down -v
 ```
 
-### Step 6: Run Tests in Docker
+## Testing
+
+### Test Structure
+
+```
+tests/
+├── conftest.py          # Fixtures (test DB, client, mocks)
+├── test_api.py          # Integration tests for endpoints
+└── test_service.py      # Unit tests for business logic
+```
+
+### Key Testing Features
+
+- **In-memory SQLite** for fast test database
+- **Mocked MinIO** storage (no external dependencies)
+- **Mocked external APIs** using `respx`
+- **Async test support** with `pytest-asyncio`
+- **Fixtures** for dependency injection
+
 
 ```bash
 # Run tests inside a container
@@ -220,11 +239,11 @@ Deploy the complete application stack (PostgreSQL + MinIO + FastAPI) with a sing
 
 ```bash
 # Step 1: Clone the repository
-git clone https://github.com/YOUR_USERNAME/animal-pics.git
+git clone https://github.com/sanket4373/animal-pics.git
 cd animal-pics
 
 # Step 2: Deploy everything with ONE command
-helm install animal-pics ./helm/animal-pics --namespace animal-pics --create-namespace
+helm install animal-pics ./helm/animal-pics
 
 # This automatically deploys:
 # PostgreSQL database (postgres:15-alpine with 1Gi persistent storage)
@@ -306,6 +325,94 @@ Or edit `helm/animal-pics/values.yaml` and upgrade:
 ```bash
 helm upgrade animal-pics ./helm/animal-pics -n animal-pics
 ```
+
+### Storage Configuration (Persistence Pattern)
+
+The Helm chart implements an **industry-standard persistence pattern** that makes it work on **any Kubernetes cluster**, including local clusters without a StorageClass.
+
+#### How It Works
+
+By default, `persistence.enabled: false` in `values.yaml`, which means:
+
+- **No PersistentVolumeClaims (PVCs)** are created
+- **emptyDir volumes** are used instead (ephemeral storage)
+- **Works immediately** on any cluster (minikube, kind, Docker Desktop, etc.)
+- **Data is lost** when pods restart (acceptable for demos/testing)
+
+When you have a StorageClass available (production clusters), set `persistence.enabled: true`:
+
+```bash
+# Enable persistence for production
+helm install animal-pics ./helm/animal-pics \
+  --set postgres.persistence.enabled=true \
+  --set minio.persistence.enabled=true \
+  --namespace animal-pics --create-namespace
+```
+
+Or edit `values.yaml`:
+
+```yaml
+postgres:
+  persistence:
+    enabled: true      # Enable persistent storage
+    size: 1Gi
+    storageClass: ""   # Empty = use cluster default StorageClass
+
+minio:
+  persistence:
+    enabled: true      # Enable persistent storage
+    size: 5Gi
+    storageClass: ""   # Empty = use cluster default StorageClass
+```
+
+#### Why This Pattern?
+
+This is the **same pattern used by Bitnami charts** and other mature Helm charts:
+
+- **Plug-and-play**: Works on any cluster without configuration
+- **Production-ready**: Supports real persistence when available
+- **No manual PV creation**: Uses dynamic provisioning when StorageClass exists
+
+#### Storage Behavior
+
+| Scenario | persistence.enabled | Storage Type | Data Persistence | Use Case |
+|----------|-------------------|--------------|------------------|----------|
+| Local dev (no StorageClass) | `false` | emptyDir | Lost on pod restart | Development, demos, testing |
+| Production (with StorageClass) | `true` | PVC + PV | Survives pod restarts | Production deployments |
+
+#### Checking Your Cluster's StorageClass
+
+```bash
+# List available StorageClasses
+kubectl get storageclass
+
+# If you see output, you have a StorageClass and can enable persistence
+# If empty, use the default persistence.enabled: false
+```
+
+#### Init Container for Startup Resilience
+
+The application deployment includes an **init container** that waits for PostgreSQL to be ready before starting the main app:
+
+```yaml
+initContainers:
+  - name: wait-for-postgres
+    image: postgres:15-alpine
+    command:
+      - sh
+      - -c
+      - |
+        until pg_isready -h animal-pics-postgresql -p 5432 -U postgres; do
+          echo "Waiting for PostgreSQL to be ready..."
+          sleep 2
+        done
+```
+
+**Why this matters:**
+- Kubernetes has no `depends_on` equivalent (unlike Docker Compose)
+- Without this, the app crashes if PostgreSQL isn't ready yet
+- The init container ensures proper startup ordering
+- Shows understanding of production Kubernetes patterns
 
 ### Cleanup
 
@@ -549,40 +656,6 @@ FastAPI automatically generates interactive API documentation:
 - **ReDoc**: http://localhost:8000/redoc
 
 ---
-
-## Testing
-
-
-
-### Test Structure
-
-```
-tests/
-├── conftest.py          # Fixtures (test DB, client, mocks)
-├── test_api.py          # Integration tests for endpoints
-└── test_service.py      # Unit tests for business logic
-```
-
-### Key Testing Features
-
-- **In-memory SQLite** for fast test database
-- **Mocked MinIO** storage (no external dependencies)
-- **Mocked external APIs** using `respx`
-- **Async test support** with `pytest-asyncio`
-- **Fixtures** for dependency injection
-
-### Example Test
-
-```python
-def test_fetch_animals(client, mock_external_apis):
-    response = client.post(
-        "/animals/fetch",
-        json={"animal_type": "dog", "count": 2}
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data["fetched"]) == 2
-```
 
 ### Linting and Code Quality
 

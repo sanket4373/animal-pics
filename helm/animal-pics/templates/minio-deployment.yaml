@@ -54,6 +54,11 @@ spec:
           timeoutSeconds: 3
           failureThreshold: 3
       volumes:
+      {{- if .Values.minio.persistence.enabled }}
       - name: minio-data
         persistentVolumeClaim:
           claimName: {{ .Release.Name }}-minio-data
+      {{- else }}
+      - name: minio-data
+        emptyDir: {}
+      {{- end }}

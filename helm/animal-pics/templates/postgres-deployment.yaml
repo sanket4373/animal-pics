@@ -54,6 +54,11 @@ spec:
           timeoutSeconds: 3
           failureThreshold: 3
       volumes:
+      {{- if .Values.postgres.persistence.enabled }}
       - name: postgres-data
         persistentVolumeClaim:
           claimName: {{ .Release.Name }}-postgres-data
+      {{- else }}
+      - name: postgres-data
+        emptyDir: {}
+      {{- end }}

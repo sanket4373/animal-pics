@@ -29,7 +29,9 @@ postgres:
     password: postgres
     database: animals
   persistence:
+    enabled: false      # Set to true when a StorageClass is available
     size: 1Gi
+    storageClass: ""    # Empty = use cluster default StorageClass
 
 # MinIO configuration (using official minio/minio:latest image)
 minio:
@@ -41,7 +43,9 @@ minio:
     rootUser: minioadmin
     rootPassword: minioadmin
   persistence:
+    enabled: false      # Set to true when a StorageClass is available
     size: 5Gi
+    storageClass: ""    # Empty = use cluster default StorageClass
 
 # Application environment variables
 # These will be injected into the app deployment
