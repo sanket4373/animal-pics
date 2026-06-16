@@ -9,12 +9,12 @@ ENV POETRY_NO_INTERACTION=1
 ENV POETRY_VIRTUALENVS_IN_PROJECT=1
 ENV POETRY_VIRTUALENVS_CREATE=1
 
-RUN pip install poetry
+RUN pip install poetry pytest-cov
 
 # Install dependencies only (not the app itself yet)
 # This layer is cached unless pyproject.toml/poetry.lock changes
 COPY pyproject.toml poetry.lock ./
-RUN poetry install --without dev --no-root
+RUN poetry install --no-root
 
 
 # Stage 2: Runtime - Minimal production image
@@ -28,6 +28,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 # Copy application source code
 COPY app/ ./app/
+COPY tests/ ./tests/
 
 EXPOSE 8000
 
