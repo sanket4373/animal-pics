@@ -19,7 +19,7 @@ spec:
             - sh
             - -c
             - |
-              until pg_isready -h {{ .Release.Name }}-postgresql -p 5432 -U postgres; do
+              until pg_isready -h {{ .Release.Name }}-postgres -p 5432 -U postgres; do
                 echo "Waiting for PostgreSQL to be ready..."
                 sleep 2
               done

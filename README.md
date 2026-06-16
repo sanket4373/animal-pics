@@ -19,9 +19,7 @@ A production-ready FastAPI microservice that fetches, stores, and serves animal 
 - [Running Application in Production Deployment (Kubernetes)](#running-application-in-production-deployment-kubernetes)
 - [Technology Stack](#technology-stack)
 - [Features](#features)
-- [Prerequisites](#prerequisites)
 - [API Reference](#api-reference)
-
 - [Project Structure](#project-structure)
 - [Design Decisions](#design-decisions)
 ---
@@ -275,6 +273,9 @@ kubectl get svc -n animal-pics
 # Port forward to access locally
 kubectl port-forward svc/animal-pics 8000:8000 -n animal-pics
 
+# application health check
+curl http://localhost:8000/health
+
 # Open in browser:
 # - Web UI: http://localhost:8000
 # - API Docs: http://localhost:8000/docs
@@ -293,38 +294,6 @@ curl -X POST http://localhost:8000/animals/fetch \
 curl http://localhost:8000/animals/last/dog --output dog.jpg
 ```
 
-### Customization Options
-
-You can customize the deployment using `--set` flags:
-
-```bash
-# Custom database password
-helm install animal-pics ./helm/animal-pics \
-  --set postgres.auth.password=mysecurepassword \
-  --namespace animal-pics --create-namespace
-
-# Scale up replicas
-helm install animal-pics ./helm/animal-pics \
-  --set replicaCount=3 \
-  --namespace animal-pics --create-namespace
-
-# Use specific image version
-helm install animal-pics ./helm/animal-pics \
-  --set image.tag=v1.0.0 \
-  --namespace animal-pics --create-namespace
-
-# Increase storage sizes
-helm install animal-pics ./helm/animal-pics \
-  --set postgres.persistence.size=5Gi \
-  --set minio.persistence.size=10Gi \
-  --namespace animal-pics --create-namespace
-```
-
-Or edit `helm/animal-pics/values.yaml` and upgrade:
-
-```bash
-helm upgrade animal-pics ./helm/animal-pics -n animal-pics
-```
 
 ### Storage Configuration (Persistence Pattern)
 
@@ -531,23 +500,6 @@ MinIO is an **object store** — the architecturally correct tool for binary fil
 - Comprehensive test suite with mocked external dependencies
 - Health check endpoint for monitoring
 - Type-safe with Pydantic schemas
-
----
-
-## Prerequisites
-
-### For Local Development (Docker Compose)
-
-- Docker 20.10+
-- Docker Compose 2.0+
-- OR Colima (Docker Desktop alternative for macOS)
-
-### For Production Deployment (Kubernetes)
-
-- kubectl
-- Helm 3
-- Access to a Kubernetes cluster (minikube, kind, or cloud provider)
-- Container registry access (Docker Hub, GCR, ECR, etc.)
 
 ---
 
