@@ -59,8 +59,8 @@ graph TB
     end
     
     subgraph External["External APIs"]
-        Dogs["Place Dog API<br/>🐶 place.dog<br/>(Random dog images)"]
-        Bears["Place Bear API<br/>🐻 placebear.com<br/>(Random bear images)"]
+        Dogs["Place Dog API<br/>place.dog<br/>(Random dog images)"]
+        Bears["Place Bear API<br/>placebear.com<br/>(Random bear images)"]
     end
     
     subgraph Storage
@@ -163,6 +163,21 @@ docker-compose down
 docker-compose down -v
 ```
 
+### Step 6: Run Tests in Docker
+
+```bash
+# Run tests inside a container
+docker-compose run --rm app python -m pytest -v
+
+# Run without coverage
+docker-compose run --rm app python -m pytest -v tests/
+
+# Run specific test file
+docker-compose run --rm app python -m pytest -v tests/test_api.py
+docker-compose run --rm app python -m pytest -v tests/test_service.py
+
+```
+
 ### What's Running?
 
 Docker Compose starts three services automatically:
@@ -204,26 +219,19 @@ docker pull sanket4373/animal-pics:v1.0.0
 Deploy the complete application stack (PostgreSQL + MinIO + FastAPI) with a single command:
 
 ```bash
-# Step 1: Add Helm repositories (one-time setup)
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm repo add minio https://charts.min.io/
-helm repo update
-
-# Step 2: Clone the repository
+# Step 1: Clone the repository
 git clone https://github.com/YOUR_USERNAME/animal-pics.git
-cd animal-pics/helm/animal-pics
+cd animal-pics
 
-# Step 3: Update Helm dependencies
-helm dependency update
-
-# Step 4: Deploy everything with ONE command
-helm install animal-pics . --namespace animal-pics --create-namespace
+# Step 2: Deploy everything with ONE command
+helm install animal-pics ./helm/animal-pics --namespace animal-pics --create-namespace
 
 # This automatically deploys:
-#  PostgreSQL database (with 1Gi persistent storage)
-#  MinIO object storage (with 5Gi persistent storage)
-#  FastAPI application (pulls from Docker Hub)
-#  All required services, configmaps, and secrets
+# PostgreSQL database (postgres:15-alpine with 1Gi persistent storage)
+# MinIO object storage (minio/minio:latest with 5Gi persistent storage)
+# FastAPI application (pulls from Docker Hub: sanket4373/animal-pics:latest)
+# All required services, configmaps, and secrets
+# Health checks and readiness probes
 ```
 
 ### Verify Deployment
@@ -234,7 +242,7 @@ kubectl get pods -n animal-pics
 
 # Expected output (wait 1-2 minutes for all to be Ready):
 # NAME                                    READY   STATUS    RESTARTS   AGE
-# animal-pics-postgresql-0                1/1     Running   0          2m
+# animal-pics-postgres-xxx                1/1     Running   0          2m
 # animal-pics-minio-xxx                   1/1     Running   0          2m
 # animal-pics-xxx                         1/1     Running   0          2m
 
@@ -272,29 +280,23 @@ You can customize the deployment using `--set` flags:
 
 ```bash
 # Custom database password
-helm install animal-pics . \
-  --set postgresql.auth.password=mysecurepassword \
+helm install animal-pics ./helm/animal-pics \
+  --set postgres.auth.password=mysecurepassword \
   --namespace animal-pics --create-namespace
 
 # Scale up replicas
-helm install animal-pics . \
+helm install animal-pics ./helm/animal-pics \
   --set replicaCount=3 \
   --namespace animal-pics --create-namespace
 
 # Use specific image version
-helm install animal-pics . \
+helm install animal-pics ./helm/animal-pics \
   --set image.tag=v1.0.0 \
   --namespace animal-pics --create-namespace
 
-# Disable persistence (for testing)
-helm install animal-pics . \
-  --set postgresql.primary.persistence.enabled=false \
-  --set minio.persistence.enabled=false \
-  --namespace animal-pics --create-namespace
-
 # Increase storage sizes
-helm install animal-pics . \
-  --set postgresql.primary.persistence.size=5Gi \
+helm install animal-pics ./helm/animal-pics \
+  --set postgres.persistence.size=5Gi \
   --set minio.persistence.size=10Gi \
   --namespace animal-pics --create-namespace
 ```
@@ -302,7 +304,7 @@ helm install animal-pics . \
 Or edit `helm/animal-pics/values.yaml` and upgrade:
 
 ```bash
-helm upgrade animal-pics . -n animal-pics
+helm upgrade animal-pics ./helm/animal-pics -n animal-pics
 ```
 
 ### Cleanup
@@ -550,18 +552,7 @@ FastAPI automatically generates interactive API documentation:
 
 ## Testing
 
-### Run Tests in Docker
 
-```bash
-# Run tests inside a container
-docker-compose run --rm app poetry run pytest -v
-
-# Run with coverage
-docker-compose run --rm app poetry run pytest -v --cov=app --cov-report=html
-
-# Run specific test file
-docker-compose run --rm app poetry run pytest tests/test_api.py -v
-```
 
 ### Test Structure
 
