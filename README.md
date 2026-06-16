@@ -22,6 +22,7 @@ A production-ready FastAPI microservice that fetches, stores, and serves animal 
 - [API Reference](#api-reference)
 - [Project Structure](#project-structure)
 - [Design Decisions](#design-decisions)
+- [Acknowledgments](#acknowledgments)
 ---
 
 ## Background
@@ -698,6 +699,6 @@ class Settings(BaseSettings):
 
 ## Acknowledgments
 
-- [Dog CEO API](https://place.dog/) - Free dog pictures
-- [Bear API](https://placebear.com/) - Bear pictures
+- [Place Dog API](https://place.dog/) - Free dog pictures
+- [Place Bear API](https://placebear.com/) - Bear pictures
 ---
