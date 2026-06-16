@@ -209,22 +209,6 @@ Docker Compose starts three services automatically:
 
 Deploy to Kubernetes in minutes using the pre-built Docker image from Docker Hub. No need to build the image yourself!
 
-### Pre-built Docker Image
-
-The application is available as a public Docker image on Docker Hub:
-
-**Docker Hub Repository:** https://hub.docker.com/r/sanket4373/animal-pics
-
-The Helm chart is configured to automatically pull the image from Docker Hub during deployment. You can also manually pull it if needed:
-
-```bash
-# Pull the latest image (optional - Helm does this automatically)
-docker pull sanket4373/animal-pics:latest
-
-# Or use a specific version
-docker pull sanket4373/animal-pics:v1.0.0
-```
-
 ### Prerequisites
 
 - Access to a Kubernetes cluster (minikube, kind, GKE, EKS, AKS, or any K8s cluster)
@@ -271,8 +255,7 @@ kubectl get svc -n animal-pics
 
 ```bash
 # Port forward to access locally
-kubectl port-forward svc/animal-pics 8000:8000 -n animal-pics
-
+kubectl port-forward svc/animal-pics 8000:8000 &
 # application health check
 curl http://localhost:8000/health
 
