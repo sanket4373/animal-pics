@@ -37,7 +37,7 @@ This microservice was built to demonstrate modern Python web development practic
 
 ### Problem Statement
 
-Fetch animal pictures from external APIs (Dog CEO API, Bear API), store them efficiently, and provide a simple interface to retrieve them. The challenge is to handle binary data correctly, support concurrent fetching, and deploy in both local and production environments.
+Fetch animal pictures from external APIs (Dog API, Bear API), store them efficiently, and provide a simple interface to retrieve them. The challenge is to handle binary data correctly, support concurrent fetching, and deploy in both local and production environments.
 
 ---
 
@@ -127,11 +127,13 @@ cd animal-pics
 ### Step 2: Build and Start Services
 
 ```bash
-# Build and start all services
-docker-compose up --build
-
 # Or run in detached mode
 docker-compose up -d --build
+
+#Docker Compose starts three services automatically:
+# FastAPI Application(Port 8000) - The main microservice
+# PostgreSQL Database (Port 5432) - Stores metadata
+# MinIO Object Storage (Ports 9000, 9001) - Stores images
 
 # View logs
 docker-compose logs -f app
@@ -195,15 +197,6 @@ docker-compose run --rm app python -m pytest -v tests/test_api.py
 docker-compose run --rm app python -m pytest -v tests/test_service.py
 
 ```
-
-### What's Running?
-
-Docker Compose starts three services automatically:
-
-- **FastAPI Application** (Port 8000) - The main microservice
-- **PostgreSQL Database** (Port 5432) - Stores metadata
-- **MinIO Object Storage** (Ports 9000, 9001) - Stores images
-
 ---
 
 ## Running Application in Production Deployment (Kubernetes)
@@ -365,7 +358,6 @@ initContainers:
 - Kubernetes has no `depends_on` equivalent (unlike Docker Compose)
 - Without this, the app crashes if PostgreSQL isn't ready yet
 - The init container ensures proper startup ordering
-- Shows understanding of production Kubernetes patterns
 
 ### Cleanup
 
@@ -685,15 +677,15 @@ class Settings(BaseSettings):
 
 ### 4. Health Check Endpoint
 
-**Why:** Essential for production. Used by Docker Compose, Kubernetes liveness probes, and load balancers to determine service health.
+Essential for production. Used by Docker Compose, Kubernetes liveness probes, and load balancers to determine service health.
 
 ### 5. Helm Chart Included
 
-**Why:** Demonstrates production-readiness. Helm is the standard for Kubernetes deployments. Shows understanding of cloud-native patterns.
+Demonstrates production-readiness. Helm is the standard for Kubernetes deployments. Shows understanding of cloud-native patterns.
 
 ### 6. OpenAPI Documentation
 
-**Why:** FastAPI generates interactive docs automatically. Improves discoverability and reduces documentation burden.
+FastAPI generates interactive docs automatically. Improves discoverability and reduces documentation burden.
 
 ---
 
